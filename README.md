@@ -38,7 +38,7 @@ PowerShell -ExecutionPolicy Bypass -File .\diagnostics.ps1 -RunClientChecks 'VPN
 PowerShell -ExecutionPolicy Bypass -File .\diagnostics.ps1 -RunServerChecks '*'
 ```
 
-La salida de cada comprobación se muestra en pantalla y también se registra en `diagnostics.log` dentro de la misma carpeta del script.
+La salida de cada comprobación se muestra en pantalla y también se registra en `diagnostics.log` dentro de la misma carpeta del script. Cada entrada del log incluye marca de tiempo, nivel (INFO/ADVERTENCIA/ERROR) y los detalles completos devueltos por el chequeo (latencias, IPs resueltas, servicios caídos, etc.) para que puedas explicar al cliente o al técnico exactamente qué está ocurriendo.
 
 Cuando se utilizan los parámetros `-RunClientChecks` o `-RunServerChecks` el script ejecuta directamente las pruebas indicadas, imprime los resultados en consola y finaliza sin mostrar los menús. Puedes pasar el nombre exacto de cada check (tal y como aparece en la interfaz) o utilizar `'*'` para forzar la ejecución de todos los chequeos de ese bloque.
 

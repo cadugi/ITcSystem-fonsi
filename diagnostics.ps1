@@ -121,11 +121,33 @@ function Convert-ResultToText {
 
 function Write-LogEntry {
     param(
-        [Parameter(Mandatory)][string]$Text
+        [Parameter(Mandatory)][string]$Text,
+        [ValidateSet('INFO','ADVERTENCIA','ERROR')]
+        [string]$Level = 'INFO'
     )
-    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    $entry = "[$timestamp] $Text"
-    Add-Content -Path $LogPath -Value $entry
+
+    $lines = $Text -split "`r?`n"
+    foreach ($line in $lines) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+        $entry = "[$timestamp] [$Level] $line"
+        Add-Content -Path $LogPath -Value $entry
+    }
+}
+
+function Write-ResultToLog {
+    param(
+        [Parameter(Mandatory)][pscustomobject]$Result
+    )
+
+    $level = switch ($Result.Status) {
+        'Error' { 'ERROR' }
+        'Advertencia' { 'ADVERTENCIA' }
+        default { 'INFO' }
+    }
+
+    $text = Convert-ResultToText -Result $Result
+    Write-LogEntry -Text $text -Level $level
 }
 
 function Test-IsGuiAvailable {
@@ -156,7 +178,7 @@ function Invoke-Checks {
         if (-not $CheckTable.Contains($checkName)) { continue }
         $result = Invoke-Diagnostic -Name $checkName -ScriptBlock $CheckTable[$checkName]
         $results += $result
-        Write-LogEntry "${checkName}: $($result.Status)"
+        Write-ResultToLog -Result $result
     }
 
     return $results
