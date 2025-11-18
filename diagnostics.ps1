@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$NoGui,
-    [string]$LogPath = (Join-Path -Path $PSScriptRoot -ChildPath "diagnostics.log"),
+    [string]$LogPath,
     [switch]$SkipAdminCheck,
     [string[]]$RunClientChecks,
     [string[]]$RunServerChecks
@@ -9,6 +9,26 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
+
+$script:DiagnosticsScriptRoot = if (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+    $PSScriptRoot
+}
+elseif ($PSCommandPath) {
+    Split-Path -LiteralPath $PSCommandPath -Parent
+}
+elseif ($MyInvocation.MyCommand.Path) {
+    Split-Path -LiteralPath $MyInvocation.MyCommand.Path -Parent
+}
+else {
+    (Get-Location).ProviderPath
+}
+
+if ([string]::IsNullOrWhiteSpace($LogPath)) {
+    $LogPath = Join-Path -Path $script:DiagnosticsScriptRoot -ChildPath 'diagnostics.log'
+}
+elseif (-not [System.IO.Path]::IsPathRooted($LogPath)) {
+    $LogPath = Join-Path -Path $script:DiagnosticsScriptRoot -ChildPath $LogPath
+}
 
 function Ensure-AdminPrivileges {
     if ($PSVersionTable.PSVersion.Major -lt 3) {
