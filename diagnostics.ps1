@@ -49,7 +49,8 @@ function Ensure-AdminPrivileges {
     }
 
     Write-Verbose 'Relanzando el script con privilegios elevados.'
-    $arguments = @('-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $PSCommandPath))
+    $quotedScript = '"' + $PSCommandPath + '"'
+    $arguments = @('-ExecutionPolicy', 'Bypass', '-File', $quotedScript)
     if ($NoGui) { $arguments += '-NoGui' }
     if ($SkipAdminCheck) { $arguments += '-SkipAdminCheck' }
     Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList $arguments -Verb RunAs | Out-Null
@@ -103,17 +104,37 @@ function Write-ResultsToConsole {
     }
 }
 
+function Convert-ResultDataToString {
+    param([object]$Data)
+
+    if (-not $Data) { return $null }
+
+    try {
+        $formatted = $Data | Format-List | Out-String
+        return $formatted.TrimEnd()
+    }
+    catch {
+        $raw = ($Data | Out-String).TrimEnd()
+        $errorLine = "No se pudo formatear los datos: $($_.Exception.Message)"
+        if ($raw) {
+            return "$errorLine`n$raw"
+        }
+        return $errorLine
+    }
+}
+
 function Convert-ResultToText {
     param(
         [Parameter(Mandatory)][pscustomobject]$Result
     )
     $sb = [System.Text.StringBuilder]::new()
-    [void]$sb.AppendLine("[{0}] {1}" -f $Result.Status, $Result.Check)
-        $details = if ($Result.Details) { $Result.Details } else { '' }
-        [void]$sb.AppendLine($details.Trim())
-    if ($Result.Data) {
-        $formatted = $Result.Data | Format-List | Out-String
-        [void]$sb.AppendLine($formatted.TrimEnd())
+    $header = "[$($Result.Status)] $($Result.Check)"
+    [void]$sb.AppendLine($header)
+    $details = if ($Result.Details) { $Result.Details } else { '' }
+    [void]$sb.AppendLine($details.Trim())
+    $dataText = Convert-ResultDataToString -Data $Result.Data
+    if ($dataText) {
+        [void]$sb.AppendLine($dataText)
     }
     [void]$sb.AppendLine(('-' * 60))
     return $sb.ToString()
@@ -215,7 +236,7 @@ function Show-ConsoleCheckMenu {
         Write-Host "--- Menú $Title ---" -ForegroundColor Cyan
         $index = 1
         foreach ($name in $Checks.Keys) {
-            Write-Host ("{0}. {1}" -f $index, $name)
+            Write-Host "$index. $name"
             $index++
         }
         Write-Host "$index. Ejecutar todos"
